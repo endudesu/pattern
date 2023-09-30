@@ -2,10 +2,11 @@
  * @Name : imgprocessing.c
  * @Description : Image Processing in C
  * @Date : 2023. 9. 12
- * @Revision : 0.3
+ * @Revision : 0.4
  * 0.1 : inverse
  * 0.2 : brightness, contrast
  * 0.3 : histogram, gonzales method, binalization
+ * 0.4 : histogram stretching, histogram equlization
  * @Author : Howoong Lee, Division of Computer Enginnering, Hoseo Univ.
  */
 
@@ -13,12 +14,12 @@
 #include <stdlib.h>
 #include <Windows.h>
 
-/*
- * @Function Name : InverseImage
- * @Descriotion : Pixel 단위로 밝기값을 Inverse
- * @Input : *Input, nWidth, nHeight
- * @Output : *Output
- */
+ /*
+  * @Function Name : InverseImage
+  * @Descriotion : Pixel 단위로 밝기값을 Inverse
+  * @Input : *Input, nWidth, nHeight
+  * @Output : *Output
+  */
 void InverseImage(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 {
 	int nImgSize = nWidth * nHeight;
@@ -191,12 +192,75 @@ BYTE GonzalezMethod(int* Histogram)
 	return bThreshold;
 }
 
+/*
+ * @Function Name : HistogramStretching
+ * @Descriotion : 히스토그램 스트래칭을 수행
+ * @Input : *Input, *Histigrnam, nWidth, nHeight
+ * @Output : *Output
+ */
+void HistogramStretching(BYTE* Input, BYTE* Output, int* Histogram, int nWidth, int nHeight)
+{
+	int ImgSize = nWidth * nHeight;
+	BYTE Low, High;
+	for (int i = 0; i < 256; i++) {
+		if (Histogram[i] != 0) {
+			Low = i;
+			break;
+		}
+	}
+	for (int i = 255; i >= 0; i--) {
+		if (Histogram[i] != 0) {
+			High = i;
+			break;
+		}
+	}
+	for (int i = 0; i < ImgSize; i++) {
+		Output[i] = (BYTE)((Input[i] - Low) / (double)(High - Low) * 255.0);
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : HistogramEqualization
+ * @Descriotion : 히스토그램 평활화를 수행
+ * @Input : *Input, *Histigrnam, nWidth, nHeight
+ * @Output : *Output
+ */
+void HistogramEqualization(BYTE* Input, BYTE* Output, int* Histogram, int nWidth, int nHeight)
+{
+	int ImgSize = nWidth * nHeight;
+
+	int Nt = ImgSize;
+	int Gmax = 255;
+
+	double Ratio = Gmax / (double)Nt;
+	BYTE NormSum[256];
+
+	int AHistogram[256] = { 0, };
+
+	for (int i = 0; i < 256; i++) {
+		for (int j = 0; j <= i; j++) {
+			AHistogram[i] += Histogram[j];
+		}
+	}
+
+	for (int i = 0; i < 256; i++) {
+		NormSum[i] = (BYTE)(Ratio * AHistogram[i]);
+	}
+	for (int i = 0; i < ImgSize; i++)
+	{
+		Output[i] = NormSum[Input[i]];
+	}
+
+	return;
+}
 
 /*
  * @Function Name : main
  * @Descriotion : Image Processing main 함수로 switch 문에 따라 함수를 호출하여 기능을 수행
- * @Input : 
- * @Output : 
+ * @Input :
+ * @Output :
  */
 void main()
 {
@@ -230,7 +294,9 @@ void main()
 	printf("3.  Adjust Contrast\n");
 	printf("4.  Generate Histogram\n");
 	printf("5.  Generate Binarization - Gonzalez Method\n");
-	printf("6.  Generate Binarization\n\n");
+	printf("6.  Generate Binarization\n");
+	printf("7.  Histogram Stretching\n");
+	printf("8.  Histogram Equalization\n\n");
 	printf("=================================\n\n");
 
 	printf("원하는 기능의 번호를 입력하세요 : ");
@@ -343,7 +409,7 @@ void main()
 	case 5:
 		// Histogram 생성
 		GenerateHistogram(Input, nHisto, hInfo.biWidth, hInfo.biHeight);
-		
+
 		// Gonzales Method로 threshold를 결정
 		bThreshold = GonzalezMethod(nHisto);
 
@@ -359,7 +425,7 @@ void main()
 		}
 
 		break;
-
+			
 	case 6:
 		printf("이진화 임계값(Threshold)를 입력하세요 : ");
 		scanf_s("%d", &nThreshold);
@@ -376,6 +442,41 @@ void main()
 
 		break;
 
+	case 7:
+		// Histogram 생성
+		GenerateHistogram(Input, nHisto, hInfo.biWidth, hInfo.biHeight);
+
+		// 히스토그램 스트래칭 진행
+		HistogramStretching(Input, Output, nHisto, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../stretching.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			return;
+		}
+
+		break;
+
+	case 8:
+		// Histogram 생성
+		GenerateHistogram(Input, nHisto, hInfo.biWidth, hInfo.biHeight);
+
+		// 히스토그램 평활화 진행
+		HistogramEqualization(Input, Output, nHisto, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../equalization.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			return;
+		}
+
+		break;
+
+
 	default:
 		printf("입력 값이 잘못되었습니다.\n");
 		free(Input);
@@ -391,7 +492,7 @@ void main()
 	fclose(fp);
 
 	free(Input);
-	free(Output);	
+	free(Output);
 
 	return;
 }
