@@ -6,7 +6,7 @@
  * 0.1 : inverse
  * 0.2 : brightness, contrast
  * 0.3 : histogram, gonzales method, binalization
- * 0.4 : histogram stretching, histogram equlization
+ * 0.4 : histogram stretching, histogram equalization
  * 0.5 : convolution(9~17)
  * @Author : Howoong Lee, Division of Computer Enginnering, Hoseo Univ.
  */
