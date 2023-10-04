@@ -2,17 +2,19 @@
  * @Name : imgprocessing.c
  * @Description : Image Processing in C
  * @Date : 2023. 9. 12
- * @Revision : 0.4
+ * @Revision : 0.5
  * 0.1 : inverse
  * 0.2 : brightness, contrast
  * 0.3 : histogram, gonzales method, binalization
  * 0.4 : histogram stretching, histogram equlization
+ * 0.5 : convolution(9~17)
  * @Author : Howoong Lee, Division of Computer Enginnering, Hoseo Univ.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
+#include "convolution.h""
 
  /*
   * @Function Name : InverseImage
@@ -257,6 +259,198 @@ void HistogramEqualization(BYTE* Input, BYTE* Output, int* Histogram, int nWidth
 }
 
 /*
+ * @Function Name : AverageConvolution
+ * @Descriotion : Average 필터를 적용한 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void AverageConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x 열
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * AvgKernel[m + 1][n + 1];  // y * 전체 x + x	
+				}
+			}
+			Output[i * nWidth + j] = (BYTE)SumProduct;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : GaussianConvolution
+ * @Descriotion : Gaussian 필터를 적용한 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void GaussianConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * GaussKernel[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+			Output[i * nWidth + j] = (BYTE)SumProduct;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : LaplacianConvolution
+ * @Descriotion : Laplacian Filter를 적용한 Edge 검출 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void LaplacianConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * LaplacianKernel[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+
+			// 0 ~ +- 2040 값이 나오기 때문에, 절대값 / 8을 취하여 0 ~ 255 값으로 조정
+			Output[i * nWidth + j] = abs((long)SumProduct) / 8;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : X_PrewittConvolution
+ * @Descriotion : X_Prewitt Filter를 적용한 Edge 검출 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void X_PrewittConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * PrewittKernel_X[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+
+			// 0 ~ +- 765 값이 나오기 때문에, 절대값 / 3을 취하여 0 ~ 255 값으로 조정
+			Output[i * nWidth + j] = abs((long)SumProduct) / 3;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : Y_PrewittConvolution
+ * @Descriotion : Y_Prewitt Filter를 적용한 Edge 검출 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void Y_PrewittConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * PrewittKernel_Y[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+
+			// 0 ~ +- 765 값이 나오기 때문에, 절대값 / 3을 취하여 0 ~ 255 값으로 조정
+			Output[i * nWidth + j] = abs((long)SumProduct) / 3;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : X_SobelConvolution
+ * @Descriotion : X_Sobel Filter를 적용한 Edge 검출 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void X_SobelConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * SobelKernel_X[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+
+			// 0 ~ +- 1020 값이 나오기 때문에, 절대값 / 4을 취하여 0 ~ 255 값으로 조정
+			Output[i * nWidth + j] = abs((long)SumProduct) / 4;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
+ * @Function Name : Y_SobelConvolution
+ * @Descriotion : Y_Sobel Filter를 적용한 Edge 검출 Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void Y_SobelConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * SobelKernel_Y[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+
+			// 0 ~ +- 1020 값이 나오기 때문에, 절대값 / 4을 취하여 0 ~ 255 값으로 조정
+			Output[i * nWidth + j] = abs((long)SumProduct) / 4;
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
+/*
  * @Function Name : main
  * @Descriotion : Image Processing main 함수로 switch 문에 따라 함수를 호출하여 기능을 수행
  * @Input :
@@ -296,8 +490,17 @@ void main()
 	printf("5.  Generate Binarization - Gonzalez Method\n");
 	printf("6.  Generate Binarization\n");
 	printf("7.  Histogram Stretching\n");
-	printf("8.  Histogram Equalization\n\n");
-	printf("=================================\n\n");
+	printf("8.  Histogram Equalization\n");
+	printf("9.  Average Convolution\n");
+	printf("10. Gaussian Convolution\n");
+	printf("11. Laplacian Convolution\n");
+	printf("12. Prewitt X Convolution\n");
+	printf("13. Prewitt Y Convolution\n");
+	printf("14. Prewitt Convolution\n");
+	printf("15. Sobel X Convolution\n");
+	printf("16. Sobel Y Convolution\n");
+	printf("17. Sobel Convolution\n\n");
+		printf("=================================\n\n");
 
 	printf("원하는 기능의 번호를 입력하세요 : ");
 	scanf_s("%d", &nMode);
@@ -330,7 +533,10 @@ void main()
 	BYTE* Input = (BYTE*)malloc(nImgSize);
 	BYTE* Output = (BYTE*)malloc(nImgSize);
 
-	if (NULL == Input || NULL == Output) {
+	// Ver 0.5
+	BYTE* Temp = (BYTE*)malloc(nImgSize);		// prewitt convolution과 sobel convolution을 위해 임시 버퍼 생성
+
+	if (NULL == Input || NULL == Output || NULL == Temp) {
 		printf("Error : memory allocation error\n");
 		return;
 	}
@@ -338,6 +544,7 @@ void main()
 	// 버퍼 초기화
 	memset(Input, 0, nImgSize);
 	memset(Output, 0, nImgSize);
+	memset(Temp, 0, nImgSize); // prewitt convolution과 sobel convolution을 위해 임시 버퍼 초기화
 
 	// 
 	fread(Input, sizeof(BYTE), nImgSize, fp);
@@ -355,6 +562,7 @@ void main()
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
@@ -372,6 +580,7 @@ void main()
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
@@ -379,16 +588,25 @@ void main()
 
 	case 3:
 		// contrast
-		printf("대비 조절 값(실수)을 입력하세요 : ");
+		printf("대비 조절 값(0보다 큰 실수 값)을 입력하세요 : ");
 		scanf_s("%lf", &dContrast);
 
 		AdjustContrast(Input, Output, hInfo.biWidth, hInfo.biHeight, dContrast);
+
+		if (dContrast < 0) {
+			printf("Error : input value error = %d\n", dContrast);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
 
 		nErr = fopen_s(&fp, "../contrast.bmp", "wb");
 		if (NULL == fp) {
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
@@ -404,6 +622,7 @@ void main()
 
 		free(Input);
 		free(Output);
+		free(Temp);
 		return;
 
 	case 5:
@@ -421,6 +640,7 @@ void main()
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
@@ -437,6 +657,7 @@ void main()
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
@@ -454,6 +675,7 @@ void main()
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
@@ -471,16 +693,173 @@ void main()
 			printf("Error : file open error = %d\n", nErr);
 			free(Input);
 			free(Output);
+			free(Temp);
 			return;
 		}
 
 		break;
 
+	case 9:
+		// Average Convolution
+		AverageConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../average.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 10:
+		// Gaussian Convolution
+		GaussianConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../guassian.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 11:
+		// Laplacian Convolution
+		LaplacianConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../laplacian_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 12:
+		// Prewitt X Convolution
+		X_PrewittConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../prewitt_x_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 13:
+		// Prewitt Y Convolution
+		Y_PrewittConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../prewitt_y_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 14:
+		// Prewitt Convolution
+
+		// Prewitt X 결과를 Temp에 저장
+		X_PrewittConvolution(Input, Temp, hInfo.biWidth, hInfo.biHeight);
+
+		// Prewitt Y 결과를 Output에 저장
+		Y_PrewittConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		// Prewitt X 결과와 Y 결과를 비교하여 더 큰 값을 Output에 저장
+		for (int i = 0; i < nImgSize; i++) {
+			if (Temp[i] > Output[i])
+				Output[i] = Temp[i];
+		}
+
+		nErr = fopen_s(&fp, "../prewitt_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 15:
+		// Sebel X Convolution
+		X_SobelConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../sobel_x_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 16:
+		// Sobel Y Convolution
+		Y_SobelConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../sobel_y_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 17:
+		// Sobel Convolution
+
+		// Sobel X 결과를 Temp에 저장
+		X_SobelConvolution(Input, Temp, hInfo.biWidth, hInfo.biHeight);
+
+		// Sobel Y 결과를 Output에 저장
+		Y_SobelConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		for (int i = 0; i < nImgSize; i++) {
+			if (Temp[i] > Output[i])
+				Output[i] = Temp[i];
+		}
+
+		nErr = fopen_s(&fp, "../sobel_edge.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			free(Input);
+			free(Output);
+			free(Temp);
+			return;
+		}
+
+		break;
 
 	default:
 		printf("입력 값이 잘못되었습니다.\n");
 		free(Input);
 		free(Output);
+		free(Temp);
 		return;
 
 	}
@@ -493,6 +872,7 @@ void main()
 
 	free(Input);
 	free(Output);
+	free(Temp);
 
 	return;
 }
