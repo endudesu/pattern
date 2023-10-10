@@ -2,12 +2,13 @@
  * @Name : imgprocessing.c
  * @Description : Image Processing in C
  * @Date : 2023. 9. 12
- * @Revision : 0.5
+ * @Revision : 0.6
  * 0.1 : inverse
  * 0.2 : brightness, contrast
  * 0.3 : histogram, gonzales method, binalization
  * 0.4 : histogram stretching, histogram equalization
  * 0.5 : convolution(9~17)
+ * 0.6 : laplacian high pass filter
  * @Author : Howoong Lee, Division of Computer Enginnering, Hoseo Univ.
  */
 
@@ -260,7 +261,7 @@ void HistogramEqualization(BYTE* Input, BYTE* Output, int* Histogram, int nWidth
 
 /*
  * @Function Name : AverageConvolution
- * @Descriotion : Average 필터를 적용한 Convolution
+ * @Descriotion : Average Kernel을 적용한 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -286,7 +287,7 @@ void AverageConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 /*
  * @Function Name : GaussianConvolution
- * @Descriotion : Gaussian 필터를 적용한 Convolution
+ * @Descriotion : Gaussian Kernel을 적용한 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -312,7 +313,7 @@ void GaussianConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 /*
  * @Function Name : LaplacianConvolution
- * @Descriotion : Laplacian Filter를 적용한 Edge 검출 Convolution
+ * @Descriotion : Laplacian Kernel을 적용한 Edge 검출 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -340,7 +341,7 @@ void LaplacianConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 /*
  * @Function Name : X_PrewittConvolution
- * @Descriotion : X_Prewitt Filter를 적용한 Edge 검출 Convolution
+ * @Descriotion : X_Prewitt Kernel을 적용한 Edge 검출 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -368,7 +369,7 @@ void X_PrewittConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 /*
  * @Function Name : Y_PrewittConvolution
- * @Descriotion : Y_Prewitt Filter를 적용한 Edge 검출 Convolution
+ * @Descriotion : Y_Prewitt Kernel을 적용한 Edge 검출 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -396,7 +397,7 @@ void Y_PrewittConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 /*
  * @Function Name : X_SobelConvolution
- * @Descriotion : X_Sobel Filter를 적용한 Edge 검출 Convolution
+ * @Descriotion : X_Sobel Kernel을 적용한 Edge 검출 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -424,7 +425,7 @@ void X_SobelConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 /*
  * @Function Name : Y_SobelConvolution
- * @Descriotion : Y_Sobel Filter를 적용한 Edge 검출 Convolution
+ * @Descriotion : Y_Sobel Kernel을 적용한 Edge 검출 Convolution
  * @Input : *Input, nWidth, nHeight
  * @Output : *Output
  */
@@ -449,6 +450,41 @@ void Y_SobelConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 
 	return;
 }
+
+/*
+ * @Function Name : HPF_LaplacianConvolution
+ * @Descriotion : Laplacian Kernel을 적용한 High Pass Filter Convolution
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void HPF_LaplacianConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	double SumProduct = 0.0;
+
+	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
+	for (int i = 1; i < nHeight - 1; i++) {			// y 행
+		for (int j = 1; j < nWidth - 1; j++) {		// x
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+				for (int n = -1; n <= 1; n++) {		// kernel의 열
+					SumProduct += Input[(i + m) * nWidth + (j + n)] * LaplacianKernel_HPF[m + 1][n + 1];  // y * 전체 x + x
+				}
+			}
+
+			// 255보다 크면 255로 조정, 0보다 작으면 0으로 조정
+			if (SumProduct > 255.0)
+				Output[i * nWidth + j] = 255;
+			else if (SumProduct < 0.0)
+				Output[i * nWidth + j] = 0;
+			else
+				Output[i * nWidth + j] = (BYTE)SumProduct;
+
+			SumProduct = 0.0;						// 초기화
+		}
+	}
+
+	return;
+}
+
 
 /*
  * @Function Name : main
@@ -499,8 +535,9 @@ void main()
 	printf("14. Prewitt Convolution\n");
 	printf("15. Sobel X Convolution\n");
 	printf("16. Sobel Y Convolution\n");
-	printf("17. Sobel Convolution\n\n");
-		printf("=================================\n\n");
+	printf("17. Sobel Convolution\n");
+	printf("18. Laplacian High Pass Filter Convolution\n\n");
+	printf("=================================\n\n");
 
 	printf("원하는 기능의 번호를 입력하세요 : ");
 	scanf_s("%d", &nMode);
@@ -850,6 +887,18 @@ void main()
 			free(Input);
 			free(Output);
 			free(Temp);
+			return;
+		}
+
+		break;
+
+	case 18:
+		// Laplacian High-pass Filter Convolution
+		HPF_LaplacianConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../laplacian_HPF.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
 			return;
 		}
 
