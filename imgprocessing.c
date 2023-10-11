@@ -272,13 +272,13 @@ void AverageConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
 	// Convolution Center를 (1,1)로 잡기 위해 1부터 시작, n-1까지 진행
 	for (int i = 1; i < nHeight - 1; i++) {			// y 행
 		for (int j = 1; j < nWidth - 1; j++) {		// x 열
-			for (int m = -1; m <= 1; m++) {			// kernel의 행	
+			for (int m = -1; m <= 1; m++) {			// kernel의 행	(중요) 2차원 배열의 기준점을 (0,0)으로 잡기 위해서 (-1, -1)로 시작
 				for (int n = -1; n <= 1; n++) {		// kernel의 열
 					SumProduct += Input[(i + m) * nWidth + (j + n)] * AvgKernel[m + 1][n + 1];  // y * 전체 x + x	
 				}
 			}
-			Output[i * nWidth + j] = (BYTE)SumProduct;
-			SumProduct = 0.0;						// 초기화
+			Output[i * nWidth + j] = (BYTE)SumProduct; // (중요)2차원 배열의 인덱스를 1차원 배열로 전환하는 공식 ( 행 X windth + 열 )
+			SumProduct = 0.0;						   // 초기화
 		}
 	}
 
