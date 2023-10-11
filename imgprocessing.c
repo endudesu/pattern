@@ -205,20 +205,34 @@ void HistogramStretching(BYTE* Input, BYTE* Output, int* Histogram, int nWidth, 
 {
 	int ImgSize = nWidth * nHeight;
 	BYTE Low, High;
+
+	// 히스토그램에서 최초로 0이 아닌 밝기 값을 계산
 	for (int i = 0; i < 256; i++) {
 		if (Histogram[i] != 0) {
 			Low = i;
 			break;
 		}
 	}
+
+	// 히스토그램에서 마지막으로 0이 아닌 밝기 값을 계산
 	for (int i = 255; i >= 0; i--) {
 		if (Histogram[i] != 0) {
 			High = i;
 			break;
 		}
 	}
+
+	// 스트래칭 수행
 	for (int i = 0; i < ImgSize; i++) {
-		Output[i] = (BYTE)((Input[i] - Low) / (double)(High - Low) * 255.0);
+		// Input[i] - Low = 밝기의 최소값이 0이 되도록 설정
+		// High-Low = 최대 밝기 값과 최소 밝기 값의 차이
+		// X 255 = 밝기 값을 0 ~ 255 범위로 스케일링
+		if (Input[i] <= Low) {
+			Output[i] = 0;
+		}
+		else {
+			Output[i] = (BYTE)((Input[i] - Low) / (double)(High - Low) * 255.0);
+		}		 
 	}
 
 	return;
@@ -234,23 +248,28 @@ void HistogramEqualization(BYTE* Input, BYTE* Output, int* Histogram, int nWidth
 {
 	int ImgSize = nWidth * nHeight;
 
-	int Nt = ImgSize;
-	int Gmax = 255;
+	int Nt = ImgSize;	// 총 픽셀수로 이미지 크기와 같음
+	int Gmax = 255;		// 이미지에서 최대 밝기 레벨
 
-	double Ratio = Gmax / (double)Nt;
-	BYTE NormSum[256];
+	double Ratio = Gmax / (double)Nt;	// 최대 밝기 레벨을 전체 픽셀 수로 나눈 비율
+	BYTE NormSum[256];					// 정규화된 누적 히스토그램을 저장할 배열
 
-	int AHistogram[256] = { 0, };
+	int AHistogram[256] = { 0, };		// 누적 히스토그램을 저장할 배열
 
+	// 누적 히스토그램 계산
 	for (int i = 0; i < 256; i++) {
 		for (int j = 0; j <= i; j++) {
-			AHistogram[i] += Histogram[j];
+			AHistogram[i] += Histogram[j];	// 최대 밝기 레벨 255까지 히스토그램 값들을 저장
 		}
-	}
+	}		// AHistorgram[255]는 전체 픽셀 수 Nt와 같음
 
+	// 정규화된 누적 히스토그램 계산
+	// 누적 히스토그램의 각 값에 Ratio를 곱해서 0~255 까지 정규화 진행
 	for (int i = 0; i < 256; i++) {
-		NormSum[i] = (BYTE)(Ratio * AHistogram[i]);
-	}
+		NormSum[i] = (BYTE)(Ratio * AHistogram[i]);  
+	}  // AHistorgram[255] X (Gmax / Nt ) = Nt X ( Gmax / Nt ) = Gmax = 255
+
+	// Input의 각 픽셀값에 대응하는 에 대응하는 정규화된 히스토그램 값을 Output에 저장
 	for (int i = 0; i < ImgSize; i++)
 	{
 		Output[i] = NormSum[Input[i]];
