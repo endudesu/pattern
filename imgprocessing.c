@@ -2,13 +2,14 @@
  * @Name : imgprocessing.c
  * @Description : Image Processing in C
  * @Date : 2023. 9. 12
- * @Revision : 0.6
+ * @Revision : 0.7
  * 0.1 : inverse
  * 0.2 : brightness, contrast
  * 0.3 : histogram, gonzales method, binalization
  * 0.4 : histogram stretching, histogram equalization
  * 0.5 : convolution(9~17)
  * 0.6 : laplacian high pass filter
+ * 0.7 : Median Filter - MinPooling , MedianPooing, MaxPooling using Bubble Sorting, swap
  * @Author : Howoong Lee, Division of Computer Enginnering, Hoseo Univ.
  */
 
@@ -504,6 +505,115 @@ void HPF_LaplacianConvolution(BYTE* Input, BYTE* Output, int nWidth, int nHeight
 	return;
 }
 
+/*
+ * @Function Name : swap
+ * @Descriotion : 
+ * @Input : *left, *right
+ * @Output : *left, *right
+ */
+void swap(BYTE* left, BYTE* right)
+{
+	BYTE temp = *left;
+	*left = *right;
+	*right = temp;
+
+	return;
+}
+
+/*
+ * @Function Name : MinPooling
+ * @Descriotion : 
+ * @Input : *bArr, nSize
+ * @Output : bArr[0]
+ */
+BYTE MinPooling(BYTE* bArr, int nSize)
+{
+	// Sorting	
+
+	for (int i = 0; i < nSize - 1; i++)
+	{
+		for (int j = i + 1; j < nSize; j++)
+		{
+			if (bArr[i] > bArr[j])
+				swap(&bArr[i], &bArr[j]);
+		}
+	}
+
+	return bArr[0];
+}
+
+/*
+ * @Function Name : MedianPooling
+ * @Descriotion : 
+ * @Input : *bArr, nSize
+ * @Output : *bArr[4]
+ */
+BYTE MedianPooling(BYTE* bArr, int nSize)
+{
+	// Sorting	
+	for (int i = 0; i < nSize - 1; i++)
+	{
+		for (int j = i + 1; j < nSize; j++)
+		{
+			if (bArr[i] > bArr[j])
+				swap(&bArr[i], &bArr[j]);
+		}
+	}
+
+	return bArr[4];
+}
+
+/*
+ * @Function Name : MaxPooling
+ * @Descriotion : 
+ * @Input : *bArr, nSize
+ * @Output : bArr[8]
+ */
+BYTE MaxPooling(BYTE* bArr, int nSize)
+{
+	// Sorting	
+	for (int i = 0; i < nSize - 1; i++)
+	{
+		for (int j = i + 1; j < nSize; j++)
+		{
+			if (bArr[i] > bArr[j])
+				swap(&bArr[i], &bArr[j]);
+		}
+	}
+
+	return bArr[8];
+}
+
+/*
+ * @Function Name : MedianFilter
+ * @Descriotion : 
+ * @Input : *Input, nWidth, nHeight
+ * @Output : *Output
+ */
+void MedianFilter(BYTE* Input, BYTE* Output, int nWidth, int nHeight)
+{
+	BYTE temp[9];
+	int i, j = 1;
+
+	for (i = 1; i < nHeight - 1; i++) {			// y 행
+		for (j = 1; j < nWidth - 1; j++) {		// x
+			temp[0] = Input[(i - 1) * nWidth + j - 1];
+			temp[1] = Input[(i - 1) * nWidth + j];
+			temp[2] = Input[(i - 1) * nWidth + j + 1];
+			temp[3] = Input[i * nWidth + j - 1];
+			temp[4] = Input[i * nWidth + j];
+			temp[5] = Input[i * nWidth + j + 1];
+			temp[6] = Input[(i + 1) * nWidth + j - 1];
+			temp[7] = Input[(i + 1) * nWidth + j];
+			temp[8] = Input[(i + 1) * nWidth + j + 1];
+
+			Output[i * nWidth + j] = MedianPooling(temp, 9);
+		}
+	}
+
+	return;
+}
+
 
 /*
  * @Function Name : main
@@ -555,7 +665,8 @@ void main()
 	printf("15. Sobel X Convolution\n");
 	printf("16. Sobel Y Convolution\n");
 	printf("17. Sobel Convolution\n");
-	printf("18. Laplacian High Pass Filter Convolution\n\n");
+	printf("18. Laplacian High Pass Filter Convolution\n");
+	printf("19. Meadian Filter, Min Pooling, Min Pooling, Max Pooling\n\n");
 	printf("=================================\n\n");
 
 	printf("원하는 기능의 번호를 입력하세요 : ");
@@ -916,6 +1027,18 @@ void main()
 		HPF_LaplacianConvolution(Input, Output, hInfo.biWidth, hInfo.biHeight);
 
 		nErr = fopen_s(&fp, "../laplacian_HPF.bmp", "wb");
+		if (NULL == fp) {
+			printf("Error : file open error = %d\n", nErr);
+			return;
+		}
+
+		break;
+
+	case 19:
+		// MedianFilter Filter Convolution
+		MedianFilter(Input, Output, hInfo.biWidth, hInfo.biHeight);
+
+		nErr = fopen_s(&fp, "../median.bmp", "wb");
 		if (NULL == fp) {
 			printf("Error : file open error = %d\n", nErr);
 			return;
